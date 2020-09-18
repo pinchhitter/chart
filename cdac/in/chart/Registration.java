@@ -6,91 +6,126 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.RefineryUtilities;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.File;
 
+import java.awt.Color;
+import java.awt.BasicStroke;
+import org.jfree.chart.plot.CategoryPlot;
+
 public class Registration extends ApplicationFrame {
 
 	public Registration( String applicationTitle , String chartTitle ) {
 		super(applicationTitle);
-		JFreeChart lineChart = ChartFactory.createLineChart( chartTitle, "Days","Number of Candidats", createDataset(), PlotOrientation.VERTICAL, true,true,false);
+		boolean showLegend = true;
+		boolean createTooltip = true;
+		boolean createURL = false;
+ 
+		JFreeChart chart = ChartFactory.createLineChart(chartTitle, "Days", "No of Candidats", createDataset(), PlotOrientation.VERTICAL, showLegend, createTooltip, createURL);
 
-		ChartPanel chartPanel = new ChartPanel( lineChart );
-		chartPanel.setPreferredSize( new java.awt.Dimension( 560 , 367 ) );
+		customizeChart( chart );
+
+		ChartPanel chartPanel = new ChartPanel( chart );
+		chartPanel.setPreferredSize( new java.awt.Dimension( 760 , 467 ) );
 		setContentPane( chartPanel );
 	}
 
-	private DefaultCategoryDataset createDataset( ) {
-		DefaultCategoryDataset dataset = new DefaultCategoryDataset( );
-		try{	
-			BufferedReader br = new BufferedReader(new FileReader(new File("2020R.csv")));	
+	private void customizeChart(JFreeChart chart) {
+
+		CategoryPlot plot = chart.getCategoryPlot();
+		LineAndShapeRenderer renderer = new LineAndShapeRenderer();
+
+		// sets paint color for each series
+		renderer.setSeriesPaint(0, Color.RED);
+		renderer.setSeriesPaint(1, Color.GREEN);
+		renderer.setSeriesPaint(2, Color.BLUE);
+
+		// sets thickness for series (using strokes)
+		renderer.setSeriesStroke(0, new BasicStroke(3.0f));
+		renderer.setSeriesStroke(1, new BasicStroke(3.0f));
+		renderer.setSeriesStroke(2, new BasicStroke(3.0f));
+		
+		// sets paint color for plot outlines
+		plot.setOutlinePaint(Color.BLUE);
+		plot.setOutlineStroke(new BasicStroke(1.0f));
+		
+		// sets renderer for lines
+		plot.setRenderer(renderer);
+		
+		// sets plot background
+		plot.setBackgroundPaint(Color.CYAN);
+		
+		// sets paint color for the grid lines
+		plot.setRangeGridlinesVisible(true);
+		plot.setRangeGridlinePaint(Color.BLACK);
+		
+		plot.setDomainGridlinesVisible(true);
+		plot.setDomainGridlinePaint(Color.BLACK);
+	}
+
+
+	int addDataSet(String filename, DefaultCategoryDataset dataset, int nofdays){
+
+		try{
+			BufferedReader br = new BufferedReader(new FileReader(new File( filename )));	
+
+			String year = filename.substring(0,4);
+
 			String line = null;
 			boolean head = true;
 			int total = 0;
-			int day = 1;
+			int days = 1;
+
 			while( (line = br.readLine()) != null ){
 				if( head ){
 					head = false;
 					continue;
 				}	
 				String[] token = line.split(",");
+
+				if( token.length < 2)
+					token = line.split("\\|");
+				if( token.length < 2)
+					continue;
+
 				total += Integer.parseInt( token[1].trim() );
-				dataset.addValue( total , "2020" , ""+day );
-				day++;	
+				dataset.addValue( total , year , ""+days );
+				days++;	
+				if( days >= nofdays)
+					break;
 			}
 
-			br = new BufferedReader(new FileReader(new File("2019R.csv")));	
-			head = true;
-			total = 0;
-			day = 1;
-			while( (line = br.readLine()) != null ){
-				if( head ){
-					head = false;
-					continue;
-				}	
-				String[] token = line.split(",");
-				total += Integer.parseInt( token[1].trim() );
-				dataset.addValue( total , "2019" , ""+day );
-				day++;	
-			}
-
-			br = new BufferedReader(new FileReader(new File("2021R.csv")));	
-			head = true;
-			total = 0;
-			day = 1;
-			while( (line = br.readLine()) != null ){
-				if( head ){
-					head = false;
-					continue;
-				}	
-				String[] token = line.split(",");
-				total += Integer.parseInt( token[1].trim() );
-				dataset.addValue( total , "2021" , ""+day );
-				day++;	
-			}
+			return days;
 
 		}catch(Exception e){
 			e.printStackTrace();
 		}		
-		/*
-		dataset.addValue( 15 , "schools" , "1970" );
-		dataset.addValue( 30 , "schools" , "1980" );
-		dataset.addValue( 60 , "schools" ,  "1990" );
-		dataset.addValue( 120 , "schools" , "2000" );
-		dataset.addValue( 240 , "schools" , "2010" );
-		dataset.addValue( 300 , "schools" , "2014" );
-		*/
-		return dataset;
+		return 0;
+	}
+
+	private DefaultCategoryDataset createDataset( ) {
+
+		DefaultCategoryDataset dataset = new DefaultCategoryDataset( );
+
+		try{
+			int count = addDataSet( "2021R.csv", dataset, 100);
+			addDataSet( "2020R.csv", dataset, count);
+			addDataSet( "2019R.csv", dataset, count);
+
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return dataset;			
 	}
 
 	public static void main( String[ ] args ) {
-		Registration chart = new Registration(
-				"Day vs Regisration" ,
-				"Numer of Registration vs Day");
-		chart.pack( );
+
+		Registration chart = new Registration( "Registration Vs Days" , "Progress");
+		chart.pack();
 		RefineryUtilities.centerFrameOnScreen( chart );
 		chart.setVisible( true );
 	}
